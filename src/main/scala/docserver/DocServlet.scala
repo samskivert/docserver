@@ -142,11 +142,11 @@ class DocServlet extends HttpServlet
   private def getTemplate (path :String) =
     new InputStreamReader(getClass.getClassLoader.getResourceAsStream(path))
 
-  /** The period on which we rescan the repository for artifacts. */
-  private val RefreshPeriod = 5000L
-  /** Whether or not the servlet has been shut down. */
+  // the period on which we rescan the repository for artifacts
+  private val RefreshPeriod = 5 * 60 * 1000L
+  // whether or not the servlet has been shut down
   private var _running = true
-  /** The thread that refreshes our artifacts. */
+  // the thread that refreshes our artifacts
   private val _refresher = new Thread {
     override def run {
       var nextRefresh = System.currentTimeMillis + RefreshPeriod
