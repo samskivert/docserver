@@ -25,6 +25,14 @@ import com.samskivert.mustache.{Mustache, DefaultCollector}
  */
 class DocServlet extends HttpServlet
 {
+  override def init {
+    _refresher.start
+  }
+
+  override def destroy {
+    _running = false
+  }
+
   override def doGet (req :HttpServletRequest, rsp :HttpServletResponse) {
     val path = req.getPathInfo
     try {
@@ -126,6 +134,25 @@ class DocServlet extends HttpServlet
 
   private def getTemplate (path :String) =
     new InputStreamReader(getClass.getClassLoader.getResourceAsStream(path))
+
+  /** The period on which we rescan the repository for artifacts. */
+  private val RefreshPeriod = 5000L
+  /** Whether or not the servlet has been shut down. */
+  private var _running = true
+  /** The thread that refreshes our artifacts. */
+  private val _refresher = new Thread {
+    override def run {
+      var nextRefresh = System.currentTimeMillis + RefreshPeriod
+      while (_running) {
+        Thread.sleep(1000)
+        val now = System.currentTimeMillis
+        if (now >= nextRefresh) {
+          _repo.refresh
+          nextRefresh = now + RefreshPeriod
+        }
+      }
+    }
+  }
 
   private val _repo = DocRepo.getRepo
 
