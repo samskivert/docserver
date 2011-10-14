@@ -87,7 +87,7 @@ object DocRepo
     }
 
     def find (frag :String) :Seq[(Entry, Artifact)] =
-      index.filter(_.key.contains(frag)).map(e => (e, this))
+      index.filter(_.simpleKey.contains(frag)).map(e => (e, this))
 
     def sourceStream (path :String) = jarStream(sourceJar, path)
     def docStream (path :String) = jarStream(docJar, path)
