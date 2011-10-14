@@ -3,22 +3,24 @@
   <title>Docserver: {{query}}</title>
 </head>
 <body>
-  {{#results}}
+{{#results}}
   {{_1}}<br/>
-  {{#_2}}
-  {{pom.fqId}}
-  {{^sourceJar.isEmpty}}
+  <ul>
+{{#_2}}
+  <li> {{pom}}
+{{^sourceJar.isEmpty}}
   <a href="/source/{{pom.fqId}}/{{_1.sourcePath}}">[source]</a>
-  {{/sourceJar.isEmpty}}
-  {{^docJar.isEmpty}}
-  <a href="/source/{{pom.fqId}}/{{_1.docPath}}">[docs]</a>
-  {{/docJar.isEmpty}}
-  <br>
-  {{/_2}}
-  {{/results}}
-  {{^results}}
+{{/sourceJar.isEmpty}}
+{{^docJar.isEmpty}}
+  <a href="/docs/{{pom.fqId}}/{{_1.docPath}}">[docs]</a>
+{{/docJar.isEmpty}}
+  </li>
+{{/_2}}
+  </ul>
+{{/results}}
+{{^results}}
   Nothing matched "{{query}}".
-  {{/results}}
+{{/results}}
 
   <form method="get">
     <p>New Query: <input type="text" name="search" value=""/>

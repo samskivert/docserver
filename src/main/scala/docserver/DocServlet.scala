@@ -48,7 +48,7 @@ class DocServlet extends HttpServlet
   private def handleSearch (out :PrintWriter, query_ :String) {
     _results.execute(new AnyRef {
       val query = query_
-      val results = _repo.find(query_)
+      val results = _repo.find(query_.toLowerCase)
     }, out)
   }
 

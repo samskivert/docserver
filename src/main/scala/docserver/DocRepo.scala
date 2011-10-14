@@ -58,7 +58,7 @@ object DocRepo
     /** The path in the docs jar that (most likely) corresponds to this entry. */
     def docPath = _clean + ".html"
 
-    override def toString = _clean
+    override def toString = _clean.replace('/', '.')
     override def hashCode = _clean.hashCode
     override def equals (other :Any) = _clean.equals(other.asInstanceOf[Entry]._clean)
 
@@ -120,6 +120,9 @@ object DocRepo
     def isJar = !retype(".jar").isEmpty
     def toArtifact =
       Artifact(this, retype(".jar").get, retype("-sources.jar"), retype("-javadoc.jar"))
+
+    override def toString = groupId + " : " + artifactId + " : " + version
+
     private def retype (suff :String) = {
       val file = new File(pom.getParentFile, pom.getName.replaceAll(".pom", suff))
       if (file.exists) Some(file) else None
