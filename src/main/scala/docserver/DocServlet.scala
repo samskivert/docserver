@@ -3,6 +3,8 @@
 
 package docserver
 
+import collection.JavaConversions._
+
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -11,7 +13,7 @@ import java.io.PrintWriter
 import javax.servlet.http._
 
 import com.samskivert.io.StreamUtil
-import com.samskivert.mustache.Mustache
+import com.samskivert.mustache.{Mustache, DefaultCollector}
 
 /**
  * Handles the following queries:
@@ -46,6 +48,7 @@ class DocServlet extends HttpServlet
   private def handleSearch (out :PrintWriter, query_ :String) {
     _results.execute(new AnyRef {
       val query = query_
+      val results = _repo.find(query_)
     }, out)
   }
 
@@ -104,7 +107,22 @@ class DocServlet extends HttpServlet
   private val _repo = DocRepo.getRepo
 
   private val (_index, _results, _error) = {
-    val compiler = Mustache.compiler
+    val compiler = Mustache.compiler.withCollector(new DefaultCollector {
+      override  def toIterator (value :AnyRef) :java.util.Iterator[_] = {
+        val iter = super.toIterator(value)
+        if (iter != null) iter else value match {
+          case iable :Iterable[_] => iable.iterator
+          case ier :Iterator[_] => ier
+          case _ => null
+        }
+      }
+      override def createFetcher (cclass :Class[_], name :String) :Mustache.VariableFetcher = {
+        val fetcher = super.createFetcher(cclass, name)
+        if (fetcher != null) fetcher else {
+          null
+        }
+      }
+    })
     (compiler.compile(getTemplate("index.tmpl")),
      compiler.compile(getTemplate("results.tmpl")),
      compiler.compile(getTemplate("error.tmpl")))
