@@ -14,6 +14,11 @@
   <p>No matches.</p>
 {{/results.isEmpty}}
 
+  <form method="get">
+    <p>New Query: <input type="text" name="search" value="{{query}}"/>
+    <input type="submit" name="Go" value="Go"/></p>
+  </form>
+
 {{^results.isEmpty}}
   <table>
 {{/results.isEmpty}}
@@ -33,10 +38,5 @@
 {{^results.isEmpty}}
   </table>
 {{/results.isEmpty}}
-
-  <form method="get">
-    <p>New Query: <input type="text" name="search" value=""/>
-    <input type="submit" name="Go" value="Go"/></p>
-  </form>
 </body>
 </html>
