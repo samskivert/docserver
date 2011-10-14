@@ -31,7 +31,7 @@ class DocServlet extends HttpServlet
       if (path == null || path == "/") {
         val out = rsp.getWriter
         val search = req.getParameter("search")
-        if (search != null) handleSearch(out, search)
+        if (search != null) handleSearch(rsp, search)
         else _index.execute(new AnyRef {
           val repo = DocRepo.mavenRoot
           val artifacts = _repo.artifactCount
@@ -45,11 +45,34 @@ class DocServlet extends HttpServlet
     }
   }
 
-  private def handleSearch (out :PrintWriter, query_ :String) {
-    _results.execute(new AnyRef {
-      val query = query_
-      val results = _repo.find(query_.toLowerCase)
-    }, out)
+  case class Result (lquery :String, entry :DocRepo.Entry, artifact :DocRepo.Artifact) {
+    def qname = highlight(entry.toString, lquery, 0)
+
+    private def highlight (text :String, lquery :String, idx :Int) :String = {
+      val start = text.toLowerCase.indexOf(lquery, idx)
+      if (start == -1) text else {
+        val end = start+lquery.size
+        highlight(text.substring(0, start) + "<b>" + text.substring(start, end) + "</b>" +
+                  text.substring(end), lquery, end+"<b></b>".length)
+      }
+    }
+  }
+
+  private def handleSearch (rsp :HttpServletResponse, query :String) {
+    if (query.isEmpty) reportError(rsp, "Query must be non-empty") else {
+      val lquery = query.toLowerCase
+      val results = _repo.find(lquery).sortBy {
+        case (e, a) => if (e.simpleKey == lquery && !a.docJar.isEmpty) 0
+                       else if (e.simpleKey == lquery) 1
+                       else if (!a.docJar.isEmpty) 2
+                       else if (!a.sourceJar.isEmpty) 3
+                       else 4
+      }
+      _results.execute(Map(
+        "query" -> query,
+        "results" -> results.map(t => Result(lquery, t._1, t._2))
+      ), rsp.getWriter)
+    }
   }
 
   private def handleDocs (rsp :HttpServletResponse, qualPath :String) {
@@ -118,13 +141,19 @@ class DocServlet extends HttpServlet
       }
       override def createFetcher (cclass :Class[_], name :String) :Mustache.VariableFetcher = {
         val fetcher = super.createFetcher(cclass, name)
-        if (fetcher != null) fetcher else {
-          null
-        }
+        if (fetcher != null) fetcher
+        else if (classOf[Map[_,_]].isAssignableFrom(cclass)) MapFetcher
+        else null
       }
     })
     (compiler.compile(getTemplate("index.tmpl")),
      compiler.compile(getTemplate("results.tmpl")),
      compiler.compile(getTemplate("error.tmpl")))
+  }
+
+  private val MapFetcher = new Mustache.VariableFetcher {
+    override def get (ctx :AnyRef, name :String) :AnyRef = {
+      ctx.asInstanceOf[Map[String,Object]].get(name).getOrElse(null)
+    }
   }
 }

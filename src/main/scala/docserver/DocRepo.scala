@@ -22,9 +22,8 @@ class DocRepo (private var artifacts :Map[String,DocRepo.Artifact])
   def artifactCount = artifacts.size
 
   /** Finds all entries with a classname that contains the supplied substring.
-   * The substring should be converted to lowercase. */
-  def find (frag :String) :Map[Entry,Seq[Artifact]] =
-    artifacts.values.toSeq.flatMap(_.find(frag)).groupBy(_._1).mapValues(_.map(_._2).toSeq)
+   * The substring should be in lowercase. */
+  def find (frag :String) :Seq[(Entry,Artifact)] = artifacts.values.toSeq.flatMap(_.find(frag))
 
   /** Returns the artifact with the supplied groupId and artifactId, if available. */
   def getArtifact (groupId :String, artifactId :String) :Option[Artifact] =
@@ -38,7 +37,7 @@ class DocRepo (private var artifacts :Map[String,DocRepo.Artifact])
     // have already expanded its index)
     def newopt (p :POM)(a :Artifact) =
       if (a.pom.pom.lastModified >= p.pom.lastModified) Some(a) else None
-    artifacts = DocRepo.getPOMs.mapValues(
+    artifacts = Map() ++ DocRepo.getPOMs.mapValues(
       p => artifacts.get(p.fqId).flatMap(newopt(p)).getOrElse(p.toArtifact))
   }
 }
@@ -48,6 +47,9 @@ object DocRepo
   class Entry (path :String) {
     /** The lower-cased class name (including outer classes) of this entry. */
     lazy val key = _clean.substring(_clean.lastIndexOf("/")+1).toLowerCase
+
+    /** The lower-cased class name (not including outer classes) of this entry. */
+    def simpleKey = key.substring(key.lastIndexOf(".")+1)
 
     /** The path in the source jar that (most likely) corresponds to this entry. */
     def sourcePath = (_clean.indexOf(".") match {
@@ -135,17 +137,17 @@ object DocRepo
     Option(getClass.getClassLoader.getResourceAsStream("docserver.properties")).
       flatMap(readRepoDir).getOrElse(defaultRoot)).getCanonicalFile
 
-  def main (args :Array[String]) {
-    if (args.isEmpty) {
-      System.err.println("Usage: classnamefrag")
-      System.exit(255)
-    }
-    getRepo.find(args(0)) foreach {
-      case (ent, arts) => println(ent + " in\n  " + arts.mkString("\n  "))
-    }
-  }
+  // def main (args :Array[String]) {
+  //   if (args.isEmpty) {
+  //     System.err.println("Usage: classnamefrag")
+  //     System.exit(255)
+  //   }
+  //   getRepo.find(args(0)) foreach {
+  //     case (ent, arts) => println(ent + " in\n  " + arts.mkString("\n  "))
+  //   }
+  // }
 
-  def getRepo = new DocRepo(getPOMs.mapValues(_.toArtifact))
+  def getRepo = new DocRepo(Map() ++ getPOMs.mapValues(_.toArtifact))
 
   private def getPOMs :Map[String,POM] =
     collectPOMs(mavenRoot).filter(_.isJar).groupBy(_.fqId).mapValues(_.maxBy(_.pom.lastModified))

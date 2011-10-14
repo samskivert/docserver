@@ -1,26 +1,38 @@
 <html>
 <head>
   <title>Docserver: {{query}}</title>
+  <style>
+  body {
+    font-family: sans-serif;
+  }
+  </style>
 </head>
 <body>
+  <h1>Query: {{query}}</h1>
+
+{{#results.isEmpty}}
+  <p>No matches.</p>
+{{/results.isEmpty}}
+
+{{^results.isEmpty}}
+  <table>
+{{/results.isEmpty}}
 {{#results}}
-  {{_1}}<br/>
-  <ul>
-{{#_2}}
-  <li> {{pom}}
-{{^sourceJar.isEmpty}}
-  <a href="/source/{{pom.fqId}}/{{_1.sourcePath}}">[source]</a>
-{{/sourceJar.isEmpty}}
-{{^docJar.isEmpty}}
-  <a href="/docs/{{pom.fqId}}/{{_1.docPath}}">[docs]</a>
-{{/docJar.isEmpty}}
-  </li>
-{{/_2}}
-  </ul>
+  <tr><td>
+{{^artifact.docJar.isEmpty}}
+  <a href="/docs/{{artifact.pom.fqId}}/{{entry.docPath}}">{{{qname}}}</a>
+{{/artifact.docJar.isEmpty}}
+{{#artifact.docJar.isEmpty}}
+  {{{qname}}}
+{{/artifact.docJar.isEmpty}}
+{{^artifact.sourceJar.isEmpty}}
+  <a href="/source/{{artifact.pom.fqId}}/{{entry.sourcePath}}">[source]</a>
+{{/artifact.sourceJar.isEmpty}}
+  </td><td>{{artifact.pom.artifactId}} : {{artifact.pom.version}}</td></tr>
 {{/results}}
-{{^results}}
-  Nothing matched "{{query}}".
-{{/results}}
+{{^results.isEmpty}}
+  </table>
+{{/results.isEmpty}}
 
   <form method="get">
     <p>New Query: <input type="text" name="search" value=""/>
