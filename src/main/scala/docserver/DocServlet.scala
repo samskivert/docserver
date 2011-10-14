@@ -13,7 +13,7 @@ import java.io.PrintWriter
 import javax.servlet.http._
 
 import com.samskivert.io.StreamUtil
-import com.samskivert.mustache.{Mustache, DefaultCollector}
+import com.samskivert.mustache.{Mustache, Template, DefaultCollector}
 
 /**
  * Handles the following queries:
@@ -40,10 +40,12 @@ class DocServlet extends HttpServlet
         val out = rsp.getWriter
         val search = req.getParameter("search")
         if (search != null) handleSearch(rsp, search)
-        else _index.execute(new AnyRef {
-          val repo = DocRepo.mavenRoot
-          val artifacts = _repo.artifactCount
-        }, out)
+        else {
+          sendTemplate(rsp, _index, new AnyRef {
+            val repo = DocRepo.mavenRoot
+            val artifacts = _repo.artifactCount
+          })
+        }
       }
       else if (path.startsWith("/docs/")) handleDocs(rsp, path.substring(6))
       else if (path.startsWith("/source/")) handleSource(rsp, path.substring(8))
@@ -76,10 +78,10 @@ class DocServlet extends HttpServlet
                        else if (!a.sourceJar.isEmpty) 3
                        else 4
       }
-      _results.execute(Map(
+      sendTemplate(rsp, _results, Map(
         "query" -> query,
         "results" -> results.map(t => Result(lquery, t._1, t._2))
-      ), rsp.getWriter)
+      ))
     }
   }
 
@@ -118,9 +120,14 @@ class DocServlet extends HttpServlet
   }
 
   private def reportError (rsp :HttpServletResponse, message_ :String) {
-    _error.execute(new AnyRef {
+    sendTemplate(rsp, _error, new AnyRef {
       val message = message_
-    }, rsp.getWriter)
+    })
+  }
+
+  private def sendTemplate (rsp :HttpServletResponse, tmpl :Template, ctx :AnyRef) {
+    rsp.setContentType("text/html")
+    tmpl.execute(ctx, rsp.getWriter)
   }
 
   private def copyStream (rsp :HttpServletResponse, path :String, stream :InputStream) {
