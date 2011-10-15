@@ -69,21 +69,9 @@ object DocRepo
 
   case class Artifact (pom :POM, jar :File, sourceJar :Option[File], docJar :Option[File]) {
     lazy val index :Seq[Entry] = {
-      val contents = ArrayBuffer[Entry]()
-      val jin = new JarInputStream(new FileInputStream(jar))
-      try {
-        var jentry = jin.getNextJarEntry
-        while (jentry != null) {
-          val name = jentry.getName
-          if (name.endsWith(".class") && !innerRe.matcher(name).find) contents += new Entry(name)
-          jentry = jin.getNextJarEntry
-        }
-      } catch {
-        case e => log.warning("Error reading entries in " + jar + ": " + e)
-      } finally {
-        jin.close
-      }
-      contents.toSeq
+      val contents = getContents(jar)
+      // filter out anonymous inner classes and turn the remainder into entries
+      contents.filterNot(isNonDocClass).map(e => new Entry(e))
     }
 
     def find (frag :String) :Seq[(Entry, Artifact)] =
@@ -175,9 +163,31 @@ object DocRepo
     }
   }
 
+  private def getContents (jar :File) :Seq[String] = {
+    val contents = ArrayBuffer[String]()
+    val jin = new JarInputStream(new FileInputStream(jar))
+    try {
+      var jentry = jin.getNextJarEntry
+      while (jentry != null) {
+        contents += jentry.getName
+        jentry = jin.getNextJarEntry
+      }
+    } catch {
+      case e => log.warning("Error reading entries in " + jar + ": " + e)
+    } finally {
+      jin.close
+    }
+    contents
+  }
+
+  private val javaInnerRe = java.util.regex.Pattern.compile("\\$[0-9]+")
+  private val scalaInnerRe = java.util.regex.Pattern.compile("\\$anonfun")
+  private def isNonDocClass (name :String) = {
+    javaInnerRe.matcher(name).find || scalaInnerRe.matcher(name).find || name.endsWith("$.class")
+  }
+
   private def defaultRoot = System.getProperty("user.home") + fs + ".m2" + fs + "repository"
 
-  private val innerRe = java.util.regex.Pattern.compile("\\$[0-9]+")
   private val log = java.util.logging.Logger.getLogger("docserver")
   private val fs = File.separator
 }
