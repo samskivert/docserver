@@ -41,6 +41,9 @@ class DocServlet extends HttpServlet
         val search = req.getParameter("search")
         if (search != null) handleSearch(rsp, search)
         else {
+          if (req.getParameter("refresh") != null) {
+            _repo.refresh()
+          }
           sendTemplate(rsp, _index, new AnyRef {
             val repo = DocRepo.mavenRoot
             val artifacts = _repo.artifactCount
@@ -154,7 +157,7 @@ class DocServlet extends HttpServlet
         Thread.sleep(1000)
         val now = System.currentTimeMillis
         if (now >= nextRefresh) {
-          _repo.refresh
+          _repo.refresh()
           nextRefresh = now + RefreshPeriod
         }
       }
