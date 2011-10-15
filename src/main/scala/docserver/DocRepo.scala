@@ -69,9 +69,9 @@ object DocRepo
 
   case class Artifact (pom :POM, jar :File, sourceJar :Option[File], docJar :Option[File]) {
     lazy val index :Seq[Entry] = {
-      val contents = getContents(jar)
+      val classes = getContents(jar).filter(_.endsWith(".class"))
       // filter out anonymous inner classes and turn the remainder into entries
-      contents.filterNot(isNonDocClass).map(e => new Entry(e))
+      classes.filterNot(isNonDocClass).map(e => new Entry(e))
     }
 
     def find (frag :String) :Seq[(Entry, Artifact)] =
@@ -169,7 +169,7 @@ object DocRepo
     try {
       var jentry = jin.getNextJarEntry
       while (jentry != null) {
-        contents += jentry.getName
+        if (!jentry.isDirectory) contents += jentry.getName
         jentry = jin.getNextJarEntry
       }
     } catch {
