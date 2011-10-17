@@ -32,13 +32,25 @@ class DocRepo (private var artifacts :Map[String,DocRepo.Artifact])
   /** Refreshes this repository, reloading indexes for any artifacts that have been updated, adding
    * any newly added artifacts and removing any that have gone away. */
   def refresh () {
+    log.info("Refreshing repository...")
+    val oartifacts = artifacts
+
     // rescan the repository, then for each POM, look up the preexisting artifact (if any) and if
     // the POM is not newer than the artifact, reuse the existing artifact (which will probably
     // have already expanded its index)
     def newopt (p :POM)(a :Artifact) =
-      if (a.pom.pom.lastModified >= p.pom.lastModified) Some(a) else None
+      if (a.pom.lastModified >= p.lastModified) Some(a) else None
     artifacts = Map() ++ DocRepo.getPOMs.mapValues(
       p => artifacts.get(p.fqId).flatMap(newopt(p)).getOrElse(p.toArtifact))
+
+    // report on what changed
+    val removed = oartifacts.keySet -- artifacts.keySet
+    if (!removed.isEmpty) log.info("Removed artifacts " + removed)
+    val added = artifacts.keySet -- oartifacts.keySet
+    if (!added.isEmpty) log.info("Added artifacts " + added)
+    val updated = artifacts.keySet.filter(
+      key => artifacts(key).pom.lastModified > oartifacts(key).pom.lastModified)
+    if (!updated.isEmpty) log.info("Updated artifacts " + updated)
   }
 }
 
@@ -106,6 +118,9 @@ object DocRepo
   }
 
   case class POM (groupId :String, artifactId :String, version :String, pom :File) {
+    // a snapshot of our last modified time
+    val lastModified = pom.lastModified
+
     def fqId = groupId + ":" + artifactId
     def isJar = !retype(".jar").isEmpty
     def toArtifact =
