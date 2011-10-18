@@ -38,9 +38,8 @@ class DocServlet extends HttpServlet
     try {
       if (path == null || path == "/") {
         val out = rsp.getWriter
-        val search = req.getParameter("search")
-        if (search != null) handleSearch(rsp, search)
-        else {
+        val query = req.getParameter("search")
+        if (query == null) {
           if (req.getParameter("refresh") != null) {
             _repo.refresh()
           }
@@ -49,6 +48,8 @@ class DocServlet extends HttpServlet
             val artifacts = _repo.artifactCount
           })
         }
+        else if (query.isEmpty) reportError(rsp, "Query must be non-empty")
+        else handleSearch(rsp, req.getParameter("action"), query)
       }
       else if (path.startsWith("/docs/")) handleDocs(rsp, path.substring(6))
       else if (path.startsWith("/source/")) handleSource(rsp, path.substring(8))
@@ -71,19 +72,29 @@ class DocServlet extends HttpServlet
     }
   }
 
-  private def handleSearch (rsp :HttpServletResponse, query :String) {
-    if (query.isEmpty) reportError(rsp, "Query must be non-empty") else {
-      val lquery = query.toLowerCase
-      val results = _repo.find(lquery).sortBy {
-        case (e, a) => if (e.simpleKey == lquery && !a.docJar.isEmpty) 0
-                       else if (e.simpleKey == lquery) 1
-                       else if (!a.docJar.isEmpty) 2
-                       else if (!a.sourceJar.isEmpty) 3
-                       else 4
-      }
+  private def handleSearch (rsp :HttpServletResponse, action :String, query :String) {
+    val lquery = query.toLowerCase
+    // perform the search and sort the results in order of most information
+    val results = _repo.find(lquery).sortBy {
+      case (e, a) => if (e.simpleKey == lquery && !a.docJar.isEmpty) 0
+                     else if (e.simpleKey == lquery) 1
+                     else if (!a.docJar.isEmpty) 2
+                     else if (!a.sourceJar.isEmpty) 3
+                     else 4
+    }
+
+    // if they want the Best result, send them the top result iff it has docs
+    def hasDocs (r :(DocRepo.Entry,DocRepo.Artifact)) = !r._2.docJar.isEmpty
+    if ("Best" == action && results.headOption.map(hasDocs).getOrElse(false)) {
+      val (beste, besta) = results.head
+      rsp.sendRedirect("docs/" + besta.pom.fqId + "/" + beste.docPath)
+    }
+    // otherwise send them a list of results, possibly filtering out non-doc-havers
+    else {
+      val filtered = if ("Everything" == action) results else results.filter(hasDocs)
       sendTemplate(rsp, _results, Map(
         "query" -> query,
-        "results" -> results.map(t => Result(lquery, t._1, t._2))
+        "results" -> filtered.map(t => Result(lquery, t._1, t._2))
       ))
     }
   }
