@@ -48,7 +48,7 @@ class DocRepo (private var artifacts :Map[String,DocRepo.Artifact])
     if (!removed.isEmpty) _log.info("Removed artifacts " + removed)
     val added = artifacts.keySet -- oartifacts.keySet
     if (!added.isEmpty) _log.info("Added artifacts " + added)
-    val updated = artifacts.keySet.filter(
+    val updated = (artifacts.keySet union oartifacts.keySet).filter(
       key => artifacts(key).pom.lastModified > oartifacts(key).pom.lastModified)
     if (!updated.isEmpty) _log.info("Updated artifacts " + updated)
   }
