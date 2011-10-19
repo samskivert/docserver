@@ -32,7 +32,7 @@ class DocRepo (private var artifacts :Map[String,DocRepo.Artifact])
   /** Refreshes this repository, reloading indexes for any artifacts that have been updated, adding
    * any newly added artifacts and removing any that have gone away. */
   def refresh () {
-    log.info("Refreshing repository...")
+    _log.info("Refreshing repository...")
     val oartifacts = artifacts
 
     // rescan the repository, then for each POM, look up the preexisting artifact (if any) and if
@@ -45,12 +45,12 @@ class DocRepo (private var artifacts :Map[String,DocRepo.Artifact])
 
     // report on what changed
     val removed = oartifacts.keySet -- artifacts.keySet
-    if (!removed.isEmpty) log.info("Removed artifacts " + removed)
+    if (!removed.isEmpty) _log.info("Removed artifacts " + removed)
     val added = artifacts.keySet -- oartifacts.keySet
-    if (!added.isEmpty) log.info("Added artifacts " + added)
+    if (!added.isEmpty) _log.info("Added artifacts " + added)
     val updated = artifacts.keySet.filter(
       key => artifacts(key).pom.lastModified > oartifacts(key).pom.lastModified)
-    if (!updated.isEmpty) log.info("Updated artifacts " + updated)
+    if (!updated.isEmpty) _log.info("Updated artifacts " + updated)
   }
 }
 
@@ -108,7 +108,7 @@ object DocRepo
           findEntry(jin)
         } catch {
           case e => {
-            log.warning("Error reading entries in " + jar + ": " + e)
+            _log.warning("Error reading entries in " + jar + ": " + e)
             jin.close
             None
           }
@@ -164,7 +164,7 @@ object DocRepo
     val versDir = pom.getParentFile
     val artifactDir = versDir.getParentFile
     val groupDir = artifactDir.getParentFile
-    POM(groupDir.getPath.substring(mavenRoot.getPath.length+1).replaceAll(fs, "."),
+    POM(groupDir.getPath.substring(mavenRoot.getPath.length+1).replaceAll(FS, "."),
         artifactDir.getName, versDir.getName, pom)
   }
 
@@ -174,7 +174,7 @@ object DocRepo
       props.load(in)
       Option(props.getProperty("maven_repo"))
     } catch {
-      case e => log.warning(e.getMessage) ; None
+      case e => _log.warning(e.getMessage) ; None
     }
   }
 
@@ -188,7 +188,7 @@ object DocRepo
         jentry = jin.getNextJarEntry
       }
     } catch {
-      case e => log.warning("Error reading entries in " + jar + ": " + e)
+      case e => _log.warning("Error reading entries in " + jar + ": " + e)
     } finally {
       jin.close
     }
@@ -201,8 +201,8 @@ object DocRepo
     javaInnerRe.matcher(name).find || scalaInnerRe.matcher(name).find || name.endsWith("$.class")
   }
 
-  private def defaultRoot = System.getProperty("user.home") + fs + ".m2" + fs + "repository"
+  private def defaultRoot = System.getProperty("user.home") + FS + ".m2" + FS + "repository"
 
-  private val log = java.util.logging.Logger.getLogger("docserver")
-  private val fs = File.separator
+  private val _log = java.util.logging.Logger.getLogger("docserver")
+  private val FS = File.separator
 }
