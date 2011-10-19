@@ -9,6 +9,7 @@ import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.PrintWriter
+import java.util.logging.{Logger, Level}
 
 import javax.servlet.http._
 
@@ -168,7 +169,11 @@ class DocServlet extends HttpServlet
         Thread.sleep(1000)
         val now = System.currentTimeMillis
         if (now >= nextRefresh) {
-          _repo.refresh()
+          try {
+            _repo.refresh()
+          } catch {
+            case e => _log.log(Level.WARNING, "Failure refreshing repo", e)
+          }
           nextRefresh = now + RefreshPeriod
         }
       }
@@ -176,6 +181,7 @@ class DocServlet extends HttpServlet
   }
 
   private val _repo = DocRepo.getRepo
+  private val _log = Logger.getLogger("docserver")
 
   private val (_index, _results, _error) = {
     val compiler = Mustache.compiler.withCollector(new DefaultCollector {
