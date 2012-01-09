@@ -8,11 +8,10 @@
 
   <p>{{message}}</p>
 
-  <form method="get">
+  <form method="get" action="{{root}}/">
     <p>New query: <input type="text" name="search" value=""/>
-    <input type="submit" name="action" value="Best"/>
-    <input type="submit" name="action" value="Has docs"/>
-    <input type="submit" name="action" value="Everything"/></p>
+    <input type="submit" name="action" value="Exact"/>
+    <input type="submit" name="action" value="Substring"/></p>
   </form>
 </body>
 </html>

@@ -21,9 +21,10 @@ class DocRepo (private var artifacts :Map[String,DocRepo.Artifact])
   /** Returns the number of (unique) artifacts found in the repository. */
   def artifactCount = artifacts.size
 
-  /** Finds all entries with a classname that contains the supplied substring.
-   * The substring should be in lowercase. */
-  def find (frag :String) :Seq[(Entry,Artifact)] = artifacts.values.toSeq.flatMap(_.find(frag))
+  /** Finds all entries with a classname that contains or is equal to (depending on the value of
+   * `exact`) the supplied substring. The substring should be in lowercase. */
+  def find (frag :String, exact: Boolean) :Seq[(Entry,Artifact)] =
+    artifacts.values.toSeq.flatMap(_.find(frag, exact))
 
   /** Returns the artifact with the supplied groupId and artifactId, if available. */
   def getArtifact (groupId :String, artifactId :String) :Option[Artifact] =
@@ -86,8 +87,11 @@ object DocRepo
       classes.filterNot(isNonDocClass).map(e => new Entry(e))
     }
 
-    def find (frag :String) :Seq[(Entry, Artifact)] =
-      index.filter(_.simpleKey.contains(frag)).map(e => (e, this))
+    def find (frag :String, exact :Boolean) :Seq[(Entry, Artifact)] = {
+      val matcher = if (exact) (s :String) => s == frag
+                    else (s :String) => s.contains(frag)
+      index.filter(e => matcher(e.simpleKey)).map(e => (e, this))
+    }
 
     def sourceStream (path :String) = jarStream(sourceJar, path)
     def docStream (path :String) = jarStream(docJar, path)
