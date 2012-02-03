@@ -1,5 +1,6 @@
 //
-// $Id$
+// docserver - serves up javadocs from artifacts in your local Maven repository
+// http://github.com/samskivert/docserver/blob/master/etc/LICENSE
 
 package docserver
 
