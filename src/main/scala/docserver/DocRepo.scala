@@ -183,7 +183,7 @@ object DocRepo
     }
   }
 
-  private def getContents (jar :File) :Seq[String] = {
+  private def getContents (jar :File) :Seq[String] = try {
     val contents = ArrayBuffer[String]()
     val jin = new JarInputStream(new FileInputStream(jar))
     try {
@@ -198,6 +198,8 @@ object DocRepo
       jin.close
     }
     contents
+  } catch {
+    case e => _log.warning("Failure reading " + jar + ": " + e); Seq()
   }
 
   private val javaInnerRe = java.util.regex.Pattern.compile("\\$[0-9]+")
